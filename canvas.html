@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Locked Canvas</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            margin: 0;
+            overscroll-behavior-y: contain; 
+        }
+
+        .back-link {
+            align-self: flex-start;
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #1e293b;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            transition: background 0.3s;
+        }
+
+        .back-link:hover {
+            background: #334155;
+        }
+        
+        #canvas-container {
+            position: relative;
+            margin-top: 0.5rem;
+            border: 4px solid #334155;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        canvas {
+            display: block;
+            touch-action: none;
+            cursor: crosshair;
+        }
+
+        #status-bar {
+            margin-top: 1rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #eab308;
+            text-align: center;
+            min-height: 1.5rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+        
+        .btn:disabled {
+            background-color: #334155;
+            cursor: not-allowed;
+            color: #94a3b8;
+        }
+
+        #finish-btn {
+            background-color: #10b981;
+        }
+        #finish-btn:hover {
+            background-color: #059669;
+        }
+
+        #tool-btn {
+            background-color: #64748b;
+        }
+        #tool-btn.eraser-active {
+            background-color: #f43f5e;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-link">&larr; Back to Website</a>
+
+    <h2>The Locked Canvas</h2>
+    <p>Claim the board for 3 minutes to draw your masterpiece!</p>
+
+    <div id="canvas-container">
+        <canvas id="draw-pad" width="300" height="400"></canvas>
+    </div>
+
+    <div id="status-bar">Connecting to board...</div>
+    
+    <div class="btn-group">
+        <button id="claim-btn" class="btn" disabled>Claim Canvas</button>
+        <button id="tool-btn" class="btn" style="display: none;">Tool: Pen</button>
+        <button id="finish-btn" class="btn" style="display: none;">Finish & Publish</button>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://mpkeqxqaoxiwieqhcjcc.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_RKsPxRJ2eZwXoJJ6MPZ3ig_BujLmAs1';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const canvas = document.getElementById('draw-pad');
+        const ctx = canvas.getContext('2d');
+        const claimBtn = document.getElementById('claim-btn');
+        const finishBtn = document.getElementById('finish-btn');
+        const toolBtn = document.getElementById('tool-btn');
+        const statusBar = document.getElementById('status-bar');
+
+        let isDrawing = false;
+        let hasLock = false;
+        let isEraser = false;
+        let lockInterval = null;
+
+        let clientId = localStorage.getItem('canvas_client_id');
+        if (!clientId) {
+            clientId = crypto.randomUUID();
+            localStorage.setItem('canvas_client_id', clientId);
+        }
+
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+
+        async function fetchCanvasState() {
+            const { data, error } = await supabaseClient
+                .from('canvas_state')
+                .select('*')
+                .eq('id', 1)
+                .single();
+
+            if (error) {
+                console.error("Fetch error:", error);
+                statusBar.innerText = "Status: Connection error";
+                claimBtn.disabled = false;
+                return;
+            }
+
+            if (data) {
+                applyCanvasImage(data.image_data);
+                checkLockExpiration(data.locked_until, data.locked_by);
+            }
+        }
+
+        function applyCanvasImage(imageData) {
+            if (!imageData) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = imageData;
+        }
+
+        function checkLockExpiration(lockedUntil, lockedBy) {
+            const now = new Date();
+            const expirationTime = lockedUntil ? new Date(lockedUntil) : null;
+
+            if (expirationTime && now < expirationTime) {
+                const timeLeft = Math.ceil((expirationTime - now) / 1000);
+                
+                if (lockedBy === clientId) {
+                    hasLock = true;
+                    claimBtn.style.display = 'none';
+                    toolBtn.style.display = 'block';
+                    finishBtn.style.display = 'block';
+                    startCountdown(timeLeft, true);
+                } else {
+                    hasLock = false;
+                    claimBtn.disabled = true;
+                    claimBtn.style.display = 'block';
+                    toolBtn.style.display = 'none';
+                    finishBtn.style.display = 'none';
+                    startCountdown(timeLeft, false);
+                }
+            } else {
+                hasLock = false;
+                claimBtn.disabled = false;
+                claimBtn.style.display = 'block';
+                toolBtn.style.display = 'none';
+                finishBtn.style.display = 'none';
+                statusBar.innerText = "Status: Canvas Open! Claim it to draw.";
+                statusBar.style.color = "#eab308";
+                clearInterval(lockInterval);
+            }
+        }
+
+        function startCountdown(secondsLeft, isOwner) {
+            clearInterval(lockInterval);
+            let remaining = secondsLeft;
+
+            lockInterval = setInterval(() => {
+                if (remaining <= 0) {
+                    clearInterval(lockInterval);
+                    fetchCanvasState(); 
+                    return;
+                }
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                const formattedSecs = secs < 10 ? '0' + secs : secs;
+                
+                if (isOwner) {
+                    statusBar.innerText = `Status: LOCKED BY YOU (${mins}:${formattedSecs} remaining)`;
+                    statusBar.style.color = "#10b981";
+                } else {
+                    statusBar.innerText = `Status: Canvas locked. Opens in ${mins}:${formattedSecs}`;
+                    statusBar.style.color = "#ef4444";
+                }
+                remaining--;
+            }, 1000);
+        }
+
+        fetchCanvasState();
+
+        const channel = supabaseClient.channel('canvas-room');
+
+        channel.on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'canvas_state', filter: 'id=eq.1' },
+            (payload) => {
+                const newData = payload.new;
+                applyCanvasImage(newData.image_data);
+                checkLockExpiration(newData.locked_until, newData.locked_by);
+            }
+        );
+
+        channel.on('broadcast', { event: 'draw-stroke' }, payload => {
+            const { x0, y0, x1, y1, isEraserStroke } = payload.payload;
+            drawRemoteLine(x0, y0, x1, y1, isEraserStroke);
+        });
+
+        channel.subscribe();
+
+        let lastX = 0;
+        let lastY = 0;
+
+        function getCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function startPosition(e) {
+            if (!hasLock) return;
+            e.preventDefault();
+            isDrawing = true;
+            const coords = getCoords(e);
+            lastX = coords.x;
+            lastY = coords.y;
+        }
+
+        function endPosition() {
+            isDrawing = false;
+        }
+
+        function draw(e) {
+            if (!isDrawing || !hasLock) return;
+            e.preventDefault();
+            
+            const coords = getCoords(e);
+            drawLocalLine(lastX, lastY, coords.x, coords.y, isEraser);
+
+            channel.send({
+                type: 'broadcast',
+                event: 'draw-stroke',
+                payload: { x0: lastX, y0: lastY, x1: coords.x, y1: coords.y, isEraserStroke: isEraser }
+            });
+
+            lastX = coords.x;
+            lastY = coords.y;
+        }
+
+        function drawLocalLine(x0, y0, x1, y1, eraserMode) {
+            ctx.beginPath();
+            ctx.moveTo(x0, y0);
+            ctx.lineTo(x1, y1);
+            ctx.strokeStyle = eraserMode ? '#ffffff' : '#000000';
+            ctx.lineWidth = eraserMode ? 20 : 3;
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        function drawRemoteLine(x0, y0, x1, y1, eraserMode) {
+            ctx.beginPath();
+            ctx.moveTo(x0, y0);
+            ctx.lineTo(x1, y1);
+            ctx.strokeStyle = eraserMode ? '#ffffff' : '#ef4444';
+            ctx.lineWidth = eraserMode ? 20 : 3;
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        canvas.addEventListener('mousedown', startPosition);
+        canvas.addEventListener('mouseup', endPosition);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('touchstart', startPosition, { passive: false });
+        canvas.addEventListener('touchend', endPosition);
+        canvas.addEventListener('touchmove', draw, { passive: false });
+
+        toolBtn.addEventListener('click', () => {
+            isEraser = !isEraser;
+            if (isEraser) {
+                toolBtn.innerText = "Tool: Eraser";
+                toolBtn.classList.add('eraser-active');
+            } else {
+                toolBtn.innerText = "Tool: Pen";
+                toolBtn.classList.remove('eraser-active');
+            }
+        });
+
+        claimBtn.addEventListener('click', async () => {
+            claimBtn.disabled = true;
+            statusBar.innerText = "Claiming canvas...";
+
+            const targetTime = new Date(new Date().getTime() + 3 * 60000).toISOString();
+
+            const { error } = await supabaseClient
+                .from('canvas_state')
+                .update({ 
+                    locked_by: clientId, 
+                    locked_until: targetTime 
+                })
+                .eq('id', 1);
+
+            if (error) {
+                console.error("Claim error:", error);
+                alert("Claim Error: " + error.message);
+                claimBtn.disabled = false;
+            }
+        });
+
+        finishBtn.addEventListener('click', async () => {
+            hasLock = false;
+            finishBtn.disabled = true;
+            const imageDataUrl = canvas.toDataURL();
+            const cooldownTime = new Date(new Date().getTime() + 3 * 60000).toISOString();
+
+            // FIX: Use a valid UUID string format instead of text to satisfy UUID columns
+            const dummyUuid = "00000000-0000-0000-0000-000000000000";
+
+            const { error } = await supabaseClient
+                .from('canvas_state')
+                .update({ 
+                    image_data: imageDataUrl,
+                    locked_by: dummyUuid,
+                    locked_until: cooldownTime 
+                })
+                .eq('id', 1);
+
+            if (error) {
+                console.error("Publish error details:", error);
+                alert("DB Error: " + error.message);
+                finishBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

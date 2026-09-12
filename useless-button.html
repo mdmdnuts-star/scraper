@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Useless Button</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            background: #000000;
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+            color: #ffffff;
+        }
+        
+        #counter-display {
+            font-size: 48px;
+            margin-bottom: 30px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        button { 
+            width: 200px; 
+            height: 200px; 
+            font-size: 24px; 
+            cursor: pointer; 
+            border-radius: 50%; 
+            border: 4px solid #8b0000; 
+            background: #ff0000; 
+            color: white; 
+            font-weight: bold;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.5), inset 0 -10px 20px rgba(0,0,0,0.3); 
+            transition: all 0.1s ease;
+            text-transform: uppercase;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        button:active { 
+            transform: scale(0.92); 
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5), inset 0 -5px 10px rgba(0,0,0,0.4); 
+            background: #cc0000;
+        }
+
+        #leaderboard {
+            margin-top: 40px;
+            text-align: center;
+            background: #111;
+            padding: 15px 30px;
+            border-radius: 12px;
+            border: 1px solid #333;
+        }
+
+        #leaderboard h3 {
+            margin: 0 0 15px 0;
+            color: #aaa;
+            text-transform: uppercase;
+            font-size: 18px;
+            letter-spacing: 2px;
+        }
+
+        #top-tappers {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        #top-tappers li {
+            margin-bottom: 8px;
+        }
+
+        .highlight { color: #ff4757; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="counter-display">Taps: <span id="tap-count">...</span></div>
+    <button id="useless-btn">Do Not<br>Press</button>
+
+    <div id="leaderboard">
+        <h3>Top 3 Tappers</h3>
+        <ul id="top-tappers">
+            <li>Loading...</li>
+        </ul>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://kspfztydtgukemqintrd.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_SJd3V7JW0gxL3vrqizyWdA_BTMlM6V4';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const btn = document.getElementById('useless-btn');
+        const countDisplay = document.getElementById('tap-count');
+        const leaderboardDisplay = document.getElementById('top-tappers');
+
+        // --- PG User Setup ---
+        function getOrCreateUser() {
+            let userId = localStorage.getItem('useless_user_id');
+            let username = localStorage.getItem('useless_username');
+
+            if (!userId || !username) {
+                const adjectives = ['Brave', 'Silly', 'Fast', 'Clever', 'Happy', 'Sneaky', 'Epic', 'Mighty'];
+                const animals = ['Panda', 'Tiger', 'Dolphin', 'Penguin', 'Koala', 'Falcon', 'Rhino', 'Otter'];
+                
+                userId = crypto.randomUUID();
+                username = `${adjectives[Math.floor(Math.random() * adjectives.length)]}${animals[Math.floor(Math.random() * animals.length)]}${Math.floor(Math.random() * 1000)}`;
+                
+                localStorage.setItem('useless_user_id', userId);
+                localStorage.setItem('useless_username', username);
+            }
+            return { userId, username };
+        }
+        const currentUser = getOrCreateUser();
+
+        // --- Audio Setup ---
+        function playBeep() {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); 
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.1);
+        }
+
+        // --- Fetch Initial Data ---
+        async function fetchGlobalCount() {
+            const { data } = await supabaseClient.from('button_stats').select('tap_count').eq('id', 1).single();
+            if (data) countDisplay.innerText = data.tap_count;
+        }
+
+        async function fetchLeaderboard() {
+            const { data } = await supabaseClient
+                .from('leaderboard')
+                .select('username, score')
+                .order('score', { ascending: false })
+                .limit(3);
+                
+            if (data) {
+                leaderboardDisplay.innerHTML = data.map((user, index) => 
+                    `<li>#${index + 1} ${user.username}: <span class="highlight">${user.score}</span></li>`
+                ).join('');
+            }
+        }
+
+        fetchGlobalCount();
+        fetchLeaderboard();
+
+        // --- Realtime Subscriptions ---
+        supabaseClient.channel('public:button_stats')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'button_stats' }, payload => {
+                countDisplay.innerText = payload.new.tap_count;
+            }).subscribe();
+
+        supabaseClient.channel('public:leaderboard')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'leaderboard' }, payload => {
+                fetchLeaderboard(); // Refresh top 3 anytime the board changes
+            }).subscribe();
+
+        // --- Button Interaction ---
+        btn.addEventListener('click', async () => {
+            playBeep(); 
+            // Call the new dual-action database function
+            const { error } = await supabaseClient.rpc('tap_button', { 
+                p_user_id: currentUser.userId, 
+                p_username: currentUser.username 
+            });
+            if (error) console.error("Mission failed:", error);
+        });
+    </script>
+</body>
+</html>

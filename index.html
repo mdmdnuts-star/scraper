@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Projects | Web, Cloud & Chaos</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --funny-accent: #f43f5e;
+            --forbidden-accent: #eab308;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            scroll-behavior: smooth;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            border-bottom: 1px solid #334155;
+        }
+
+        nav .logo {
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: var(--accent);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 1.5rem;
+        }
+
+        nav a {
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: var(--accent-hover);
+        }
+
+        section {
+            padding: 6rem 2rem 4rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--accent);
+            display: inline-block;
+            padding-bottom: 0.5rem;
+        }
+
+        #hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        #hero h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+        }
+
+        #hero h1 span {
+            color: var(--accent);
+        }
+
+        #hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            background-color: var(--accent);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background 0.3s;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border-color: var(--accent);
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .card p {
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .tag {
+            background: #334155;
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.8rem;
+        }
+
+        .cloud-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
+
+        .cloud-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .cloud-node {
+            padding: 1rem;
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .cloud-node.active {
+            border-color: var(--accent);
+        }
+
+        .cloud-node strong {
+            color: var(--accent-hover);
+        }
+
+        .cloud-inspector {
+            background: #0f172a;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cloud-inspector pre {
+            background: #020617;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #a5f3fc;
+            overflow-x: auto;
+            flex-grow: 1;
+        }
+
+        #funny-stuff {
+            text-align: center;
+        }
+
+        #runaway-btn {
+            background-color: var(--funny-accent);
+            position: relative;
+            margin-top: 2rem;
+            font-size: 1.2rem;
+        }
+
+        #runaway-btn:hover {
+            background-color: #fb7185;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            background: var(--card-bg);
+            margin-top: 4rem;
+            border-top: 1px solid #334155;
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            #hero h1 { font-size: 2.5rem; }
+            nav ul { display: none; }
+            .cloud-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo">&lt;Dev/&gt;</div>
+        <ul>
+            <li><a href="#hero">Home</a></li>
+            <li><a href="#apps-games">Apps & Games</a></li>
+            <li><a href="#cloud">Cloud Arch</a></li>
+            <li><a href="#funny-stuff">Funny Stuff</a></li>
+        </ul>
+    </nav>
+
+    <section id="hero">
+        <h1>I build <span>Web Apps</span>, architect <span>Cloud Systems</span>, and make <span>Funny Stuff</span>.</h1>
+        <p>Welcome to my digital playground. Here you'll find my serious engineering projects, playable games, and the chaotic experiments I built at 3 AM.</p>
+        <a href="#apps-games" class="btn">View My Work</a>
+    </section>
+
+    <section id="apps-games">
+        <h2 class="section-title">Web Apps & Games</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>The Useless Button</h3>
+                <div class="tags">
+                    <span class="tag">HTML/JS</span>
+                    <span class="tag">Supabase</span>
+                    <span class="tag">Realtime</span>
+                </div>
+                <p>A globally synced "Do Not Press" button with a live leaderboard.</p>
+                <a href="useless-button.html" class="btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;" target="_blank">Press It Anyway</a>
+            </div>
+            
+            <!-- The Locked Canvas with Live Featured Preview Image -->
+            <div class="card">
+                <h3>The Locked Canvas</h3>
+                <div class="tags">
+                    <span class="tag">HTML5 Canvas</span>
+                    <span class="tag">Supabase Broadcast</span>
+                </div>
+                <p>A collaborative drawing board. Current masterpiece on display:</p>
+                
+                <div style="background: #ffffff; border-radius: 6px; padding: 4px; margin-bottom: 1rem; text-align: center; border: 2px solid #334155;">
+                    <img id="featured-canvas-img" src="" alt="Live Canvas Masterpiece" style="width: 100%; max-height: 180px; object-fit: contain; display: block; border-radius: 4px;" />
+                </div>
+
+                <a href="canvas.html" class="btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;" target="_blank">Draw Live</a>
+            </div>
+
+            <div class="card">
+                <h3>Space Invaders Clone</h3>
+                <div class="tags">
+                    <span class="tag">Canvas API</span>
+                    <span class="tag">JavaScript</span>
+                </div>
+                <p>A web-based retro game. Pew pew! High score saves to local storage.</p>
+                <a href="#" class="btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Play Now</a>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; padding: 2rem; border-color: var(--accent); margin-top: 2rem;">
+            <h3 style="margin-bottom: 0.5rem; color: var(--accent); font-size: 2rem;">The Zen Mixer</h3>
+            <p style="color: var(--text-muted); margin-bottom: 2rem; text-align: center;">Focus up. Adjust the sliders below to mix your perfect background ambiance.</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 2rem; width: 100%; max-width: 900px;">
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <label for="vol-rain" style="margin-bottom: 0.5rem; font-weight: bold;">🌧️ Rain</label>
+                    <input type="range" id="vol-rain" min="0" max="1" step="0.01" value="0" oninput="setVolume('rain', this.value)" style="width: 100%; accent-color: var(--accent); cursor: pointer;">
+                    <audio id="audio-rain" loop src="rain.mp3" preload="auto"></audio>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <label for="vol-cafe" style="margin-bottom: 0.5rem; font-weight: bold;">☕ Cafe</label>
+                    <input type="range" id="vol-cafe" min="0" max="1" step="0.01" value="0" oninput="setVolume('cafe', this.value)" style="width: 100%; accent-color: var(--accent); cursor: pointer;">
+                    <audio id="audio-cafe" loop src="cafe.mp3" preload="auto"></audio>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <label for="vol-keyboard" style="margin-bottom: 0.5rem; font-weight: bold;">⌨️ Typing</label>
+                    <input type="range" id="vol-keyboard" min="0" max="1" step="0.01" value="0" oninput="setVolume('keyboard', this.value)" style="width: 100%; accent-color: var(--accent); cursor: pointer;">
+                    <audio id="audio-keyboard" loop src="keyboard.mp3" preload="auto"></audio>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: center; background: rgba(234, 179, 8, 0.05); border: 1px dashed var(--forbidden-accent); padding: 0.75rem; border-radius: 8px;">
+                    <label for="vol-loud" style="margin-bottom: 0.5rem; font-weight: bold; color: var(--forbidden-accent);">⚠️ THE MISTAKE</label>
+                    <input type="range" id="vol-loud" min="0" max="1" step="0.01" value="0" oninput="setVolume('loud', this.value)" style="width: 100%; accent-color: var(--forbidden-accent); cursor: pointer;">
+                    <audio id="audio-loud" loop src="loud.mp3" preload="auto"></audio>
+                    <span style="font-size: 0.7rem; color: #eab308; margin-top: 0.4rem; text-align: center;">Do not touch. You have been warned.</span>
+                </div>
+            </div>
+
+            <button onclick="toggleMixer()" id="mixer-btn" class="btn" style="margin-top: 2.5rem; padding: 1rem 2rem; font-size: 1.1rem;">▶ Start Mixer</button>
+        </div>
+    </section>
+
+    <section id="cloud">
+        <h2 class="section-title">Cloud Architecture</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">
+            Click any node in the pipeline below to inspect the infrastructure specs, Terraform snippet, and configuration.
+        </p>
+
+        <div class="cloud-container">
+            <div class="cloud-flow">
+                <div class="cloud-node active" onclick="selectNode('cf')" id="node-cf">
+                    <strong>1. Edge Layer</strong><br>
+                    <span style="font-size: 0.9rem; color: #cbd5e1;">AWS CloudFront (CDN)</span>
+                </div>
+                
+                <div style="text-align: center; color: var(--accent); font-size: 1.2rem;">↓</div>
+                
+                <div class="cloud-node" onclick="selectNode('apigw')" id="node-apigw">
+                    <strong>2. API Gateway</strong><br>
+                    <span style="font-size: 0.9rem; color: #cbd5e1;">REST API & Rate Limiting</span>
+                </div>
+
+                <div style="text-align: center; color: var(--accent); font-size: 1.2rem;">↓</div>
+
+                <div class="cloud-node" onclick="selectNode('lambda')" id="node-lambda">
+                    <strong>3. Compute Layer</strong><br>
+                    <span style="font-size: 0.9rem; color: #cbd5e1;">AWS Lambda (Serverless)</span>
+                </div>
+
+                <div style="text-align: center; color: var(--accent); font-size: 1.2rem;">↓</div>
+
+                <div class="cloud-node" onclick="selectNode('db')" id="node-db">
+                    <strong>4. Persistence Layer</strong><br>
+                    <span style="font-size: 0.9rem; color: #cbd5e1;">Amazon DynamoDB</span>
+                </div>
+            </div>
+
+            <div class="cloud-inspector">
+                <h3 id="inspector-title" style="color: var(--accent); font-size: 1.4rem; margin-bottom: 0.5rem;">
+                    AWS CloudFront
+                </h3>
+                
+                <p id="inspector-desc" style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 1rem;">
+                    Global edge network providing low latency caching, SSL termination, and basic DDoS protection for incoming requests.
+                </p>
+
+                <div style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted); background: var(--card-bg); padding: 0.75rem; border-radius: 6px;">
+                    <strong>Key Specs:</strong>
+                    <ul id="inspector-specs" style="margin-left: 1.2rem; margin-top: 0.25rem;">
+                        <li>Cache Hit Ratio: ~98.4%</li>
+                        <li>Global Locations: 400+ Edge Locations</li>
+                        <li>Security: AWS WAF integrated</li>
+                    </ul>
+                </div>
+
+                <strong style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.3rem;">Infrastructure as Code (Terraform):</strong>
+                <pre id="inspector-code">resource "aws_cloudfront_distribution" "cdn" {
+  origin {
+    domain_name = aws_api_gateway_rest_api.api.id
+    origin_id   = "APIGatewayOrigin"
+  }
+  enabled             = true
+  is_ipv6_enabled     = true
+  default_root_object = "index.html"
+}</pre>
+            </div>
+        </div>
+    </section>
+
+    <section id="funny-stuff">
+        <h2 class="section-title" style="border-color: var(--funny-accent);">The "Funny Stuff" Zone</h2>
+        <p style="color: var(--text-muted);">Warning: I take no responsibility for the code quality in this section. It just works (mostly).</p>
+        
+        <button id="runaway-btn" class="btn">Click me for a surprise!</button>
+        <p id="joke-text" style="margin-top: 2rem; font-style: italic; color: var(--funny-accent); display: none;">
+            Why do programmers prefer dark mode? Because light attracts bugs! 🪲
+        </p>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 Built with chaos and coffee. Find me on <a href="#" style="color: var(--accent);">GitHub</a>.</p>
+    </footer>
+
+    <script>
+        async function loadFeaturedCanvas() {
+            const SUPABASE_URL = 'https://mpkeqxqaoxiwieqhcjcc.supabase.co';
+            const SUPABASE_ANON_KEY = 'sb_publishable_RKsPxRJ2eZwXoJJ6MPZ3ig_BujLmAs1';
+            const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            const { data } = await supabaseClient
+                .from('canvas_state')
+                .select('image_data')
+                .eq('id', 1)
+                .single();
+
+            if (data && data.image_data) {
+                document.getElementById('featured-canvas-img').src = data.image_data;
+            }
+        }
+        loadFeaturedCanvas();
+
+        const runawayBtn = document.getElementById('runaway-btn');
+        const jokeText = document.getElementById('joke-text');
+        let hoverCount = 0;
+
+        runawayBtn.addEventListener('mouseover', function() {
+            if (hoverCount < 3) {
+                const randomX = Math.floor(Math.random() * 200) - 100;
+                const randomY = Math.floor(Math.random() * 100) - 50;
+                runawayBtn.style.transform = `translate(${randomX}px, ${randomY}px)`;
+                hoverCount++;
+            } else {
+                runawayBtn.style.transform = 'translate(0, 0)';
+                runawayBtn.innerText = "Fine, you caught me.";
+            }
+        });
+
+        runawayBtn.addEventListener('click', function() {
+            jokeText.style.display = 'block';
+            runawayBtn.style.display = 'none';
+        });
+
+        let mixerPlaying = false;
+        const tracks = ['rain', 'cafe', 'keyboard', 'loud'];
+
+        function setVolume(trackName, volumeLevel) {
+            const audio = document.getElementById(`audio-${trackName}`);
+            audio.volume = volumeLevel;
+
+            if (mixerPlaying) {
+                if (volumeLevel > 0 && audio.paused) {
+                    audio.play().catch(err => console.log("Audio playback blocked:", err));
+                } else if (volumeLevel == 0 && !audio.paused) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+            }
+        }
+
+        function toggleMixer() {
+            const btn = document.getElementById('mixer-btn');
+            mixerPlaying = !mixerPlaying;
+            
+            tracks.forEach(track => {
+                const audio = document.getElementById(`audio-${track}`);
+                const slider = document.getElementById(`vol-${track}`);
+                
+                audio.volume = slider.value;
+
+                if (mixerPlaying) {
+                    if (audio.volume > 0) {
+                        audio.play().catch(err => console.log("Audio playback blocked:", err));
+                    }
+                } else {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+            });
+
+            btn.innerText = mixerPlaying ? '⏸ Pause Mixer' : '▶ Start Mixer';
+            btn.style.backgroundColor = mixerPlaying ? 'var(--funny-accent)' : 'var(--accent)';
+        }
+
+        const cloudData = {
+            cf: {
+                title: "AWS CloudFront (CDN)",
+                desc: "Global edge network providing low latency caching, SSL termination, and DDoS protection across global POPs.",
+                specs: ["Cache Hit Ratio: ~98.4%", "Global Locations: 400+ Edge Nodes", "Security: Managed WAF + Shield"],
+                code: `resource "aws_cloudfront_distribution" "cdn" {\n  origin {\n    domain_name = aws_api_gateway_rest_api.api.id\n    origin_id   = "APIGatewayOrigin"\n  }\n  enabled             = true\n  is_ipv6_enabled     = true\n}`
+            },
+            apigw: {
+                title: "AWS API Gateway",
+                desc: "Handles routing, authentication, rate limiting, and CORS headers before proxying traffic to microservices.",
+                specs: ["Throttling: 10,000 req/sec limit", "Auth: Cognito JWT Validator", "Latency Impact: < 15ms"],
+                code: `resource "aws_apigatewayv2_api" "http_api" {\n  name          = "v1-production-api"\n  protocol_type = "HTTP"\n  cors_configuration {\n    allow_origins = ["*"]\n    allow_methods = ["GET", "POST"]\n  }\n}`
+            },
+            lambda: {
+                title: "AWS Lambda (Serverless Compute)",
+                desc: "Stateless compute functions executing Node.js/Python code on-demand. Auto-scales instantly to traffic spikes.",
+                specs: ["Runtime: Node.js 20.x", "Memory: 512 MB dynamically allocated", "Cold Start: ~180ms"],
+                code: `resource "aws_lambda_function" "backend" {\n  function_name = "api_processor"\n  role          = aws_iam_role.iam_for_lambda.arn\n  handler       = "index.handler"\n  runtime       = "nodejs20.x"\n}`
+            },
+            db: {
+                title: "Amazon DynamoDB",
+                desc: "Fully managed NoSQL database delivering single-digit millisecond performance at any scale with global replication.",
+                specs: ["Billing: On-Demand Capacity", "Avg Read/Write Latency: 4ms", "Backups: PITR enabled"],
+                code: `resource "aws_dynamodb_table" "db" {\n  name         = "prod-user-data"\n  billing_mode = "PAY_PER_REQUEST"\n  hash_key     = "UserId"\n}`
+            }
+        };
+
+        function selectNode(nodeKey) {
+            document.querySelectorAll('.cloud-node').forEach(node => node.classList.remove('active'));
+            document.getElementById(`node-${nodeKey}`).classList.add('active');
+
+            const data = cloudData[nodeKey];
+            document.getElementById('inspector-title').innerText = data.title;
+            document.getElementById('inspector-desc').innerText = data.desc;
+            document.getElementById('inspector-code').innerText = data.code;
+
+            const specsContainer = document.getElementById('inspector-specs');
+            specsContainer.innerHTML = '';
+            data.specs.forEach(spec => {
+                const li = document.createElement('li');
+                li.innerText = spec;
+                specsContainer.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>
