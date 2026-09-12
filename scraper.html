@@ -236,12 +236,12 @@
             if (type === 'web') {
                 const url = document.getElementById('urlInput').value;
                 if (!url) { alert('Please enter a valid URL'); return; }
-                endpoint = 'http://localhost:3000/api/scrape';
+                endpoint = 'https://scraper-bvru.onrender.com/api/scrape';
                 payload = { url };
             } else {
                 const username = document.getElementById('igInput').value.trim();
                 if (!username) { alert('Please enter a valid Instagram handle'); return; }
-                endpoint = 'http://localhost:3000/api/scrape-instagram';
+                endpoint = 'https://scraper-bvru.onrender.com/api/scrape-instagram';
                 payload = { username };
             }
 
