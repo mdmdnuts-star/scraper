@@ -1,22 +1,22 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cheerio = require('cheerio');
 const puppeteer = require('puppeteer');
 const { createClient } = require('@supabase/supabase-js');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-require('dotenv').config();
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Supabase configuration
-const SUPABASE_URL = 'https://vhhsaiqpjgelbpmaajum.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_0N2OZlzojCxu1_ZUa4YDog_BQ5b3WKU';
+// Supabase configuration (Secured)
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// AI Intelligence configuration
-const GEMINI_API_KEY = 'AQ.Ab8RN6JG12CkDBxctlNDO2ah6n2Q08NdRcB63Pjt5faVdnWKdQ';
+// AI Intelligence configuration (Secured)
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 const PORT = process.env.PORT || 3000;
