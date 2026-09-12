@@ -13,7 +13,6 @@
             --text-muted: #94a3b8;
             --accent: #3b82f6;
             --accent-hover: #60a5fa;
-            --funny-accent: #f43f5e;
             --forbidden-accent: #eab308;
         }
 
@@ -224,21 +223,6 @@
             flex-grow: 1;
         }
 
-        #funny-stuff {
-            text-align: center;
-        }
-
-        #runaway-btn {
-            background-color: var(--funny-accent);
-            position: relative;
-            margin-top: 2rem;
-            font-size: 1.2rem;
-        }
-
-        #runaway-btn:hover {
-            background-color: #fb7185;
-        }
-
         footer {
             text-align: center;
             padding: 2rem;
@@ -262,14 +246,14 @@
         <ul>
             <li><a href="#hero">Home</a></li>
             <li><a href="#apps-games">Apps & Games</a></li>
+            <li><a href="#scraper-section">Scraper Intelligence</a></li>
             <li><a href="#cloud">Cloud Arch</a></li>
-            <li><a href="#funny-stuff">Funny Stuff</a></li>
         </ul>
     </nav>
 
     <section id="hero">
-        <h1>I build <span>Web Apps</span>, architect <span>Cloud Systems</span>, and make <span>Funny Stuff</span>.</h1>
-        <p>Welcome to my digital playground. Here you'll find my serious engineering projects, playable games, and the chaotic experiments I built at 3 AM.</p>
+        <h1>I build <span>Web Apps</span>, architect <span>Cloud Systems</span>, and make <span>stupid shit and some good shit</span>.</h1>
+        <p>Welcome to my digital playground. Here you'll find serious engineering projects, cloud workflows, and whatever else I decide to code.</p>
         <a href="#apps-games" class="btn">View My Work</a>
     </section>
 
@@ -287,7 +271,6 @@
                 <a href="useless-button.html" class="btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;" target="_blank">Press It Anyway</a>
             </div>
             
-            <!-- The Locked Canvas with Live Featured Preview Image -->
             <div class="card">
                 <h3>The Locked Canvas</h3>
                 <div class="tags">
@@ -301,16 +284,6 @@
                 </div>
 
                 <a href="canvas.html" class="btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;" target="_blank">Draw Live</a>
-            </div>
-
-            <div class="card">
-                <h3>Space Invaders Clone</h3>
-                <div class="tags">
-                    <span class="tag">Canvas API</span>
-                    <span class="tag">JavaScript</span>
-                </div>
-                <p>A web-based retro game. Pew pew! High score saves to local storage.</p>
-                <a href="#" class="btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Play Now</a>
             </div>
         </div>
 
@@ -346,6 +319,18 @@
             </div>
 
             <button onclick="toggleMixer()" id="mixer-btn" class="btn" style="margin-top: 2.5rem; padding: 1rem 2rem; font-size: 1.1rem;">▶ Start Mixer</button>
+        </div>
+    </section>
+
+    <!-- Specific Scraper Section -->
+    <section id="scraper-section">
+        <h2 class="section-title">Data Intelligence Scraper</h2>
+        <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
+            <h3>Distributed Scraper & AI Analyzer</h3>
+            <p>A full-stack pipeline powered by Node.js, Puppeteer, Supabase, and Google Gemini AI. Harvests website media assets, social footprints, and profiles automatically with deep-dive LLM summaries.</p>
+            <div>
+                <a href="scraper.html" class="btn" target="_blank">Launch Scraper Dashboard</a>
+            </div>
         </div>
     </section>
 
@@ -416,16 +401,6 @@
         </div>
     </section>
 
-    <section id="funny-stuff">
-        <h2 class="section-title" style="border-color: var(--funny-accent);">The "Funny Stuff" Zone</h2>
-        <p style="color: var(--text-muted);">Warning: I take no responsibility for the code quality in this section. It just works (mostly).</p>
-        
-        <button id="runaway-btn" class="btn">Click me for a surprise!</button>
-        <p id="joke-text" style="margin-top: 2rem; font-style: italic; color: var(--funny-accent); display: none;">
-            Why do programmers prefer dark mode? Because light attracts bugs! 🪲
-        </p>
-    </section>
-
     <footer>
         <p>&copy; 2026 Built with chaos and coffee. Find me on <a href="#" style="color: var(--accent);">GitHub</a>.</p>
     </footer>
@@ -447,27 +422,6 @@
             }
         }
         loadFeaturedCanvas();
-
-        const runawayBtn = document.getElementById('runaway-btn');
-        const jokeText = document.getElementById('joke-text');
-        let hoverCount = 0;
-
-        runawayBtn.addEventListener('mouseover', function() {
-            if (hoverCount < 3) {
-                const randomX = Math.floor(Math.random() * 200) - 100;
-                const randomY = Math.floor(Math.random() * 100) - 50;
-                runawayBtn.style.transform = `translate(${randomX}px, ${randomY}px)`;
-                hoverCount++;
-            } else {
-                runawayBtn.style.transform = 'translate(0, 0)';
-                runawayBtn.innerText = "Fine, you caught me.";
-            }
-        });
-
-        runawayBtn.addEventListener('click', function() {
-            jokeText.style.display = 'block';
-            runawayBtn.style.display = 'none';
-        });
 
         let mixerPlaying = false;
         const tracks = ['rain', 'cafe', 'keyboard', 'loud'];
